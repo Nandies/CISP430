@@ -1,5 +1,4 @@
-// CISP 430 Spring 2025 Fernando Mendoza W2008623
-// Assignment 3
+
 // FILE: sequence_exam4.cpp
 // Non-interactive test program for the sequence class using a linked sequence
 //
