@@ -1,5 +1,4 @@
-// CISP 430 Spring 2025 Fernando Mendoza W2008623
-// Assignment #
+
 // FILE: sequence2.cpp
 // (This file implements the sequence class as declared in sequence2.h.
 //  It uses a dynamic array that grows as needed (by at least 10% increments)
