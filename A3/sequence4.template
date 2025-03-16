@@ -1,0 +1,307 @@
+// CISP 430 Spring 2025 Fernando Mendoza W2008623
+// Assignment 3
+// FILE: sequence4.template
+// This file implements a template sequence class using a linked list
+// implementation. It provides methods for creating, modifying, and
+// retrieving items from a sequence, with a movable cursor that
+// can point to a current item in the sequence.
+
+#include <cassert>  // Provides assert
+#include <cstdlib>  // Provides NULL
+
+namespace CISP430_A3
+{
+    //*************************************************************************
+    // CONSTRUCTOR
+    // Initializes an empty sequence with no nodes and all pointers set to NULL
+    //*************************************************************************
+    template <class Item>
+    sequence<Item>::sequence()
+    {
+        // Initialize all member variables to represent an empty sequence
+        head_ptr = NULL;   // No first node
+        tail_ptr = NULL;   // No last node
+        cursor = NULL;     // No current item
+        precursor = NULL;  // No node before current item
+        many_nodes = 0;    // Sequence contains zero nodes
+    }
+
+    //*************************************************************************
+    // COPY CONSTRUCTOR
+    // Creates a new sequence that is a copy of the source sequence
+    // Parameters: source - the sequence to copy
+    //*************************************************************************
+    template <class Item>
+    sequence<Item>::sequence(const sequence<Item>& source)
+    {
+        // Initialize all member variables to represent an empty sequence
+        head_ptr = NULL;
+        tail_ptr = NULL;
+        cursor = NULL;
+        precursor = NULL;
+        many_nodes = 0;
+        
+        // Use the assignment operator to copy the source sequence
+        // This avoids duplicating code that handles cursor positioning
+        *this = source;
+    }
+
+    //*************************************************************************
+    // DESTRUCTOR
+    // Frees all dynamic memory used by the sequence
+    //*************************************************************************
+    template <class Item>
+    sequence<Item>::~sequence()
+    {
+        // Use the list_clear function to delete all nodes in the linked list
+        list_clear(head_ptr);
+        
+        // Reset all pointers to NULL for safety
+        tail_ptr = NULL;
+        cursor = NULL;
+        precursor = NULL;
+    }
+
+    //*************************************************************************
+    // START
+    // Sets the cursor to the first item in the sequence
+    // Postcondition: If sequence is not empty, cursor points to first item
+    //                and precursor is NULL; otherwise both are NULL
+    //*************************************************************************
+    template <class Item>
+    void sequence<Item>::start()
+    {
+        cursor = head_ptr;    // Set cursor to the first node
+        precursor = NULL;     // There is no node before the first node
+    }
+
+    //*************************************************************************
+    // ADVANCE
+    // Moves the cursor to the next item in the sequence
+    // Precondition: is_item() returns true (there is a current item)
+    // Postcondition: If cursor was at the last item, cursor becomes NULL
+    //                Otherwise, cursor advances to the next item, and
+    //                precursor points to the item that cursor just left
+    //*************************************************************************
+    template <class Item>
+    void sequence<Item>::advance()
+    {
+        // Verify that there is a current item to advance from
+        assert(is_item());
+        
+        // Move precursor to where cursor is
+        precursor = cursor;
+        
+        // Advance cursor to the next node
+        cursor = cursor->link();
+    }
+
+    //*************************************************************************
+    // INSERT
+    // Inserts a new item before the current item, or at the front if no current item
+    // Parameters: entry - the item to insert
+    // Postcondition: entry has been inserted into the sequence, and cursor
+    //                points to the newly inserted item
+    //*************************************************************************
+    template <class Item>
+    void sequence<Item>::insert(const Item& entry)
+    {
+        if (cursor == NULL || cursor == head_ptr) // No current item or cursor at the head
+        {
+            // Insert at the beginning of the sequence
+            list_head_insert(head_ptr, entry);
+            cursor = head_ptr;
+            precursor = NULL;
+            
+            // If this was an empty sequence, set tail_ptr too
+            if (tail_ptr == NULL)
+                tail_ptr = head_ptr;
+        }
+        else // Cursor somewhere in the middle of the sequence
+        {
+            // Insert the new item before the current item
+            list_insert(precursor, entry);
+            
+            // Update cursor to point to the newly inserted item
+            cursor = precursor->link();
+        }
+        
+        // Increment the count of nodes in the sequence
+        many_nodes++;
+    }
+
+    //*************************************************************************
+    // ATTACH
+    // Inserts a new item after the current item, or at the end if no current item
+    // Parameters: entry - the item to attach
+    // Postcondition: entry has been inserted into the sequence, and cursor
+    //                points to the newly inserted item
+    //*************************************************************************
+    template <class Item>
+    void sequence<Item>::attach(const Item& entry)
+    {
+        if (cursor == NULL && tail_ptr != NULL) // No current item but sequence not empty
+        {
+            // Insert at the end of the sequence
+            list_insert(tail_ptr, entry);
+            precursor = tail_ptr;
+            cursor = tail_ptr->link();
+            tail_ptr = cursor;  // Update tail_ptr to the new last node
+        }
+        else if (cursor == NULL && tail_ptr == NULL) // Empty sequence
+        {
+            // Insert as the first (and only) item in the sequence
+            list_head_insert(head_ptr, entry);
+            cursor = head_ptr;
+            precursor = NULL;
+            tail_ptr = head_ptr;
+        }
+        else // There is a current item
+        {
+            // Insert the new item after the current item
+            list_insert(cursor, entry);
+            
+            // Update cursor and precursor to point to the newly inserted item
+            precursor = cursor;
+            cursor = cursor->link();
+            
+            // If the new item is at the end, update tail_ptr
+            if (cursor->link() == NULL)
+                tail_ptr = cursor;
+        }
+        
+        // Increment the count of nodes in the sequence
+        many_nodes++;
+    }
+
+    //*************************************************************************
+    // REMOVE_CURRENT
+    // Removes the current item from the sequence
+    // Precondition: is_item() returns true (there is a current item)
+    // Postcondition: The current item has been removed, and the item after
+    //                it (if any) is now the current item
+    //*************************************************************************
+    template <class Item>
+    void sequence<Item>::remove_current()
+    {
+        // Verify that there is a current item to remove
+        assert(is_item());
+        
+        if (cursor == head_ptr) // Removing the head node
+        {
+            // Remove the head node and update head_ptr
+            list_head_remove(head_ptr);
+            
+            // Update cursor to point to the new head
+            cursor = head_ptr;
+            precursor = NULL;
+            
+            // If we removed the only node, update tail_ptr
+            if (cursor == NULL)
+                tail_ptr = NULL;
+        }
+        else // Removing a node in the middle or at the end
+        {
+            // Move cursor to the node after the one being removed
+            cursor = cursor->link();
+            
+            // Remove the node that was the current item
+            list_remove(precursor);
+            
+            // If we removed the last node, update tail_ptr
+            if (cursor == NULL)
+                tail_ptr = precursor;
+        }
+        
+        // Decrement the count of nodes in the sequence
+        many_nodes--;
+    }
+
+    //*************************************************************************
+    // OPERATOR=
+    // Assigns one sequence to be a copy of another
+    // Parameters: source - the sequence to copy
+    // Postcondition: This sequence is a copy of source, with cursor and
+    //                precursor pointing to the same relative positions
+    //*************************************************************************
+    template <class Item>
+    void sequence<Item>::operator=(const sequence<Item>& source)
+    {
+        // Check for self-assignment
+        if (this == &source)
+            return;
+        
+        // Clear the current sequence
+        list_clear(head_ptr);
+        
+        // If the source sequence is empty, set everything to default state
+        if (source.many_nodes == 0)
+        {
+            head_ptr = NULL;
+            tail_ptr = NULL;
+            cursor = NULL;
+            precursor = NULL;
+            many_nodes = 0;
+            return;
+        }
+        
+        // Copy the nodes from source to this sequence
+        node<Item> *tail;
+        list_copy(source.head_ptr, head_ptr, tail);
+        tail_ptr = tail;
+        many_nodes = source.many_nodes;
+        
+        // Set cursor and precursor to match source's positions
+        if (source.cursor == NULL) // Source has no current item
+        {
+            cursor = NULL;
+            precursor = NULL;
+        }
+        else
+        {
+            // Find the position of source.cursor in source sequence
+            node<Item> *src_ptr = source.head_ptr;
+            size_t position = 1;
+            
+            // Traverse the source sequence until we find the cursor position
+            while (src_ptr != NULL && src_ptr != source.cursor)
+            {
+                src_ptr = src_ptr->link();
+                position++;
+            }
+            
+            if (src_ptr == NULL) // source.cursor not found (safety check)
+            {
+                cursor = NULL;
+                precursor = NULL;
+            }
+            else
+            {
+                // Set cursor to the same position in this sequence
+                cursor = list_locate(head_ptr, position);
+                
+                // Set precursor
+                if (position == 1) // If cursor is at the head
+                    precursor = NULL;
+                else
+                    precursor = list_locate(head_ptr, position - 1);
+            }
+        }
+    }
+
+    //*************************************************************************
+    // CURRENT
+    // Returns the value of the current item in the sequence
+    // Precondition: is_item() returns true (there is a current item)
+    // Returns: The value of the current item
+    //*************************************************************************
+    template <class Item>
+    Item sequence<Item>::current() const
+    {
+        // Verify that there is a current item
+        assert(is_item());
+        
+        // Return the data from the current item
+        return cursor->data();
+    }
+}
