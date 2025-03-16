@@ -1,4 +1,4 @@
-// CISP 430 Spring 2025 Fernando Mendoza W2008623
+
 // Assignment 1
 
 // FILE: stats.cpp
