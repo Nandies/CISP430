@@ -1,5 +1,4 @@
-// CISP 430 Spring 2025 Fernando Mendoza W2008623
-// Assignment 3
+
 // FILE: sequence4.h 
 // TEMPLATE CLASS PROVIDED:
 //   sequence<Item> (part of the namespace CISP430_A3)
