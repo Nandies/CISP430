@@ -9,3 +9,5 @@ A3 Grade: 200/200
 A4 Grade 200/200
 
 A5 Grade 200/200
+
+A6 Grade 200/200
