@@ -1,0 +1,337 @@
+// FILE: link2.template
+
+// Assignment 6
+// 
+// IMPLEMENTATION NOTES:
+// 1. This file implements the ten template functions declared in link2.h.
+// 2. Each function is implemented with proper error checking and memory management.
+// 3. This file is included at the bottom of link2.h and is not compiled separately.
+// 4. The implementation uses standard linked list algorithms optimized for correctness
+//    and efficiency.
+
+#include <assert.h>    // Provides assert
+#include <stdlib.h>    // Provides NULL and size_t
+
+//===========================================================================
+// LIST_LENGTH FUNCTION
+//===========================================================================
+// Purpose: Count the number of nodes in a linked list
+// Algorithm:
+// 1. Initialize counter to zero
+// 2. Traverse the list from head to tail, incrementing counter for each node
+// 3. Return the final count
+// Precondition: head_ptr is the head pointer of a linked list (may be NULL)
+// Postcondition: 
+// - Returns the number of nodes in the list
+// - The list is unchanged
+// Time complexity: O(n) where n is the number of nodes
+//===========================================================================
+template <class Item>
+size_t list_length(Node<Item>* head_ptr)
+// Library facilities used: stdlib.h
+{
+    Node<Item> *cursor;
+    size_t answer;
+
+    answer = 0;
+    for(cursor = head_ptr; cursor != NULL; cursor = cursor->link)
+        answer++;
+
+    return answer;
+}
+
+//===========================================================================
+// LIST_HEAD_INSERT FUNCTION
+//===========================================================================
+// Purpose: Insert a new node at the beginning of a linked list
+// Algorithm:
+// 1. Allocate memory for a new node
+// 2. Set the data field of the new node to the given entry
+// 3. Set the link field of the new node to the current head node
+// 4. Update head_ptr to point to the new node
+// Precondition: head_ptr is the head pointer of a linked list (may be NULL)
+// Postcondition: 
+// - A new node containing entry is added at the front of the list
+// - head_ptr now points to this new node
+// - The list is one node longer
+// Time complexity: O(1) - constant time operation
+//===========================================================================
+template <class Item>
+void list_head_insert(Node<Item>*& head_ptr, const Item& new_item)
+{
+    Node<Item> *insert_ptr;
+
+    insert_ptr = new Node<Item>;
+    insert_ptr->data = new_item;
+    insert_ptr->link = head_ptr;
+    head_ptr = insert_ptr;
+}
+
+//===========================================================================
+// LIST_INSERT FUNCTION
+//===========================================================================
+// Purpose: Insert a new node after a specified node in a linked list
+// Algorithm:
+// 1. Allocate memory for a new node
+// 2. Set the data field of the new node to the given entry
+// 3. Set the link field of the new node to point to the node after previous_ptr
+// 4. Update the link field of previous_ptr to point to the new node
+// Precondition: previous_ptr points to a node in a linked list
+// Postcondition: 
+// - A new node containing entry is added after the node that previous_ptr points to
+// - The list is one node longer
+// Time complexity: O(1) - constant time operation
+//===========================================================================
+template <class Item>
+void list_insert(Node<Item>* &previous_ptr, const Item& new_item)
+{
+    Node<Item> *insert_ptr;
+
+    insert_ptr = new Node<Item>;
+    insert_ptr->data = new_item;
+    insert_ptr->link = previous_ptr->link;
+    previous_ptr->link = insert_ptr;
+}
+
+//===========================================================================
+// LIST_SEARCH FUNCTION
+//===========================================================================
+// Purpose: Find the first occurrence of a target value in a linked list
+// Algorithm:
+// 1. Traverse the list from the head
+// 2. For each node, compare its data with the target
+// 3. If a match is found, return a pointer to that node
+// 4. If the end of the list is reached without finding a match, return NULL
+// Precondition: head_ptr is the head pointer of a linked list (may be NULL)
+// Postcondition: 
+// - Returns a pointer to the first node containing the target
+// - Returns NULL if target is not found
+// - The list is unchanged
+// Time complexity: O(n) where n is the number of nodes
+//===========================================================================
+template <class Item>
+Node<Item>* list_search(Node<Item>* head_ptr, const Item& target)
+{
+    Node<Item> *cursor;
+
+    for (cursor = head_ptr; cursor != NULL; cursor = cursor->link)
+        if (cursor->data == target)
+            return cursor;
+
+    return NULL;
+}
+
+//===========================================================================
+// LIST_LOCATE FUNCTION
+//===========================================================================
+// Purpose: Find the node at a specified position in a linked list
+// Algorithm:
+// 1. Verify that the position is valid (greater than zero)
+// 2. Initialize a cursor to the head of the list and a counter to 1
+// 3. Traverse the list, incrementing the counter until:
+//    a. The counter equals the target position, or
+//    b. The end of the list is reached
+// 4. Return the cursor or NULL if the position is beyond the end of the list
+// Precondition: 
+// - head_ptr is the head pointer of a linked list (may be NULL)
+// - position > 0
+// Postcondition: 
+// - Returns a pointer to the node at the specified position
+// - Returns NULL if no such position exists
+// - The list is unchanged
+// Time complexity: O(n) where n is the position value
+//===========================================================================
+template <class Item, class SizeType>
+Node<Item>* list_locate(Node<Item>* head_ptr, SizeType position)
+// Library facilities used: assert.h, stdlib.h
+{
+    Node<Item> *cursor;
+    size_t i;
+
+    assert(position > 0);
+    
+    cursor = head_ptr;
+    for(i = 1; (i != position) && (cursor != NULL); i++)
+        cursor = cursor->link;
+    return cursor;
+}
+
+//===========================================================================
+// LIST_HEAD_REMOVE FUNCTION
+//===========================================================================
+// Purpose: Remove the first node from a linked list
+// Algorithm:
+// 1. Save a temporary pointer to the head node
+// 2. Update the head_ptr to point to the second node
+// 3. Delete the original head node using the temporary pointer
+// Precondition: 
+// - head_ptr is the head pointer of a linked list
+// - The list has at least one node
+// Postcondition: 
+// - The head node is removed and its memory returned to the heap
+// - head_ptr now points to the second node (or NULL if there was only one node)
+// - The list is one node shorter
+// Time complexity: O(1) - constant time operation
+//===========================================================================
+template <class Item>
+void list_head_remove(Node<Item>*& head_ptr)
+{
+    Node<Item> *remove_ptr;
+
+    remove_ptr = head_ptr;
+    head_ptr = head_ptr->link;
+    delete remove_ptr;
+}
+
+//===========================================================================
+// LIST_REMOVE FUNCTION
+//===========================================================================
+// Purpose: Remove the node after a specified node in a linked list
+// Algorithm:
+// 1. Save a temporary pointer to the node to be removed
+// 2. Update the link of the previous node to bypass the removed node
+// 3. Delete the node using the temporary pointer
+// Precondition: 
+// - previous_ptr points to a node in a linked list
+// - This is not the tail node of the list (there is a node after it)
+// Postcondition: 
+// - The node after previous_ptr is removed and its memory returned to the heap
+// - The list is one node shorter
+// Time complexity: O(1) - constant time operation
+//===========================================================================
+template <class Item>
+void list_remove(Node<Item>* previous_ptr)
+{
+    Node<Item> *remove_ptr;
+
+    remove_ptr = previous_ptr->link;
+    previous_ptr->link = remove_ptr->link;
+    delete remove_ptr;
+}
+
+//===========================================================================
+// LIST_CLEAR FUNCTION
+//===========================================================================
+// Purpose: Remove all nodes from a linked list
+// Algorithm:
+// 1. Repeatedly remove the head node until the list is empty
+// Precondition: head_ptr is the head pointer of a linked list (may be NULL)
+// Postcondition: 
+// - All nodes are removed and their memory returned to the heap
+// - head_ptr is set to NULL (empty list)
+// Time complexity: O(n) where n is the number of nodes
+//===========================================================================
+template <class Item>
+void list_clear(Node<Item>*& head_ptr)
+// Library facilities used: stdlib.h
+{
+    while (head_ptr != NULL)
+        list_head_remove(head_ptr);
+}
+
+//===========================================================================
+// LIST_COPY FUNCTION
+//===========================================================================
+// Purpose: Create a copy of a linked list
+// Algorithm:
+// 1. Initialize head_ptr and tail_ptr to NULL
+// 2. If the source list is empty, return (resulting in an empty destination list)
+// 3. Create the first node of the new list with the data from the first source node
+// 4. For each remaining node in the source list:
+//    a. Add a new node to the end of the new list
+//    b. Copy the data from the source node to this new node
+// Precondition: source_ptr is the head pointer of a linked list (may be NULL)
+// Postcondition: 
+// - head_ptr points to the head of a new list that contains copies of all nodes
+//   from the source_ptr list
+// - tail_ptr points to the last node in this new list (or NULL if list is empty)
+// - The original list is unchanged
+// Time complexity: O(n) where n is the number of nodes in the source list
+//===========================================================================
+template <class Item>
+void list_copy
+(Node<Item>* source_ptr, Node<Item>*& head_ptr, Node<Item>*& tail_ptr)
+// Library facilities used: stdlib.h
+{
+    head_ptr = NULL;
+    tail_ptr = NULL;
+
+    // Handle the case of the empty list
+    if (source_ptr == NULL)
+        return;
+
+    // Make the head node for the newly created list, and put data in it
+    list_head_insert(head_ptr, source_ptr->data);
+    tail_ptr = head_ptr;
+
+    // Copy the rest of the nodes one at a time, adding at the tail of new list
+    for (source_ptr = source_ptr->link; source_ptr != NULL; source_ptr = source_ptr->link)
+    {
+        list_insert(tail_ptr, source_ptr->data);
+        tail_ptr = tail_ptr->link;
+    }
+}
+
+//===========================================================================
+// LIST_PIECE FUNCTION
+//===========================================================================
+// Purpose: Create a copy of a segment of a linked list
+// Algorithm:
+// 1. Initialize head_ptr and tail_ptr to NULL
+// 2. If the source list is empty, return (resulting in an empty destination list)
+// 3. Create the first node of the new list with the data from the start_ptr node
+// 4. If start_ptr equals end_ptr, return (a single-node list has been created)
+// 5. For each node from start_ptr->link until end_ptr (inclusive):
+//    a. Add a new node to the end of the new list
+//    b. Copy the data from the current source node to this new node
+//    c. If the current node is end_ptr, stop copying
+// Precondition: 
+// - start_ptr and end_ptr are pointers to nodes on the same linked list
+// - start_ptr node is at or before the end_ptr node
+// Postcondition: 
+// - head_ptr points to the head of a new list containing copies of all nodes 
+//   from start_ptr up to and including end_ptr
+// - tail_ptr points to the last node in this new list
+// - The original list is unchanged
+// Time complexity: O(n) where n is the number of nodes copied
+//===========================================================================
+template <class Item>
+void list_piece
+(Node<Item>* start_ptr, Node<Item>* end_ptr, Node<Item>*& head_ptr, Node<Item>*& tail_ptr)
+// Library facilities used: assert.h, stdlib.h
+{
+    head_ptr = NULL;
+    tail_ptr = NULL;
+
+    // Handle the case of the empty list
+    if (start_ptr == NULL)
+        return;
+    
+    // Make the head node for the newly created list, and put data in it
+    list_head_insert(head_ptr, start_ptr->data);
+    tail_ptr = head_ptr;
+    if (start_ptr == end_ptr)
+        return;
+    
+    // Copy the rest of the nodes one at a time, adding at the tail of new list
+    for (start_ptr = start_ptr->link; start_ptr != NULL; start_ptr = start_ptr->link)
+    {
+        list_insert(tail_ptr, start_ptr->data);
+        tail_ptr = tail_ptr->link;
+        if (start_ptr == end_ptr) 
+            return;
+    }
+}
+
+/* Commented out operator= since it's incomplete/not used
+template <class Item>
+void operator =(const Node<Item>& source) 
+// Library facilities used: link2.h, stdlib.h 
+{
+    size_t i;
+    //Node<Item>* tail_ptr; // Needed for list_copy
+
+    if (this == &source)
+        return; // Avoid self-assignment
+    this=&&source;
+}*/

@@ -1,0 +1,446 @@
+// FILE: table2.template
+
+// Assignment 6
+// 
+// CLASS IMPLEMENTED: Table (see table2.h for documentation)
+//
+// IMPLEMENTATION NOTES:
+// 1. This file implements the Table class template declared in table2.h.
+// 2. The Table uses chained hashing for collision resolution, with separate linked
+//    lists for each hash bucket.
+// 3. The implementation includes proper memory management with deep copying and
+//    cleanup of dynamically allocated nodes.
+// 4. This file is included at the bottom of table2.h and is not compiled separately.
+
+#include <iostream> // Provides cout
+#include <assert.h>  // Provides assert
+#include <stdlib.h>  // Provides NULL and size_t
+
+//===========================================================================
+// CONSTRUCTOR
+//===========================================================================
+// Purpose: Create an empty table
+// Algorithm:
+// 1. Initialize all entries in the data array to NULL (empty lists)
+// 2. Set total_records to 0
+// Precondition: None
+// Postcondition: 
+// - All entries in data array are initialized to NULL (empty lists)
+// - total_records is set to 0
+// Time complexity: O(TABLE_SIZE) - constant time since TABLE_SIZE is fixed
+//===========================================================================
+template <class RecordType>
+Table<RecordType>::Table()
+{
+    // Initialize all pointers in the array to NULL
+    for (size_t i = 0; i < TABLE_SIZE; i++)
+        data[i] = NULL;
+    
+    total_records = 0;
+}
+
+//===========================================================================
+// COPY CONSTRUCTOR
+//===========================================================================
+// Purpose: Create a deep copy of another Table
+// Algorithm:
+// 1. Initialize all entries in the data array to NULL
+// 2. For each bucket in the source table:
+//    a. If the bucket is not empty, copy its linked list
+//    b. Use list_copy helper function to create a deep copy of the list
+// 3. Set total_records to match the source
+// Precondition: source is a valid Table object
+// Postcondition: 
+// - This table contains exact copies of all records from source
+// - Changes to source afterward won't affect this table (deep copy)
+// Time complexity: O(n) where n is the total number of records in source
+//===========================================================================
+template <class RecordType>
+Table<RecordType>::Table(const Table<RecordType>& source)
+{
+    Node<RecordType>* tail_ptr; // Needed for list_copy
+    
+    // Initialize all pointers in the array to NULL
+    for (size_t i = 0; i < TABLE_SIZE; i++)
+        data[i] = NULL;
+    
+    // Copy each linked list from source
+    for (size_t i = 0; i < TABLE_SIZE; i++)
+    {
+        if (source.data[i] != NULL)
+        {
+            list_copy(source.data[i], data[i], tail_ptr);
+        }
+    }
+    
+    total_records = source.total_records;
+}
+
+//===========================================================================
+// ASSIGNMENT OPERATOR
+//===========================================================================
+// Purpose: Assign this table to be a copy of another table
+// Algorithm:
+// 1. Check for self-assignment
+// 2. Clear all existing data in this table
+// 3. Copy each linked list from the source table
+// 4. Set total_records to match the source
+// Precondition: source is a valid Table object
+// Postcondition: 
+// - This table contains exact copies of all records from source
+// - Previous contents of this table are properly deallocated
+// - Self-assignment is handled correctly (no changes if this == &source)
+// - Returns a reference to this table
+// Time complexity: O(m+n) where m is current size and n is source size
+//===========================================================================
+template <class RecordType>
+Table<RecordType>& Table<RecordType>::operator=(const Table<RecordType>& source)
+{
+    Node<RecordType>* tail_ptr; // Needed for list_copy
+    
+    if (this == &source)
+        return *this; // Avoid self-assignment
+    
+    // Clear all existing data
+    for (size_t i = 0; i < TABLE_SIZE; i++)
+    {
+        list_clear(data[i]);
+        data[i] = NULL;
+    }
+    
+    // Copy each linked list from source
+    for (size_t i = 0; i < TABLE_SIZE; i++)
+    {
+        if (source.data[i] != NULL)
+        {
+            list_copy(source.data[i], data[i], tail_ptr);
+        }
+    }
+    
+    total_records = source.total_records;
+    
+    return *this;
+}
+
+//===========================================================================
+// DESTRUCTOR
+//===========================================================================
+// Purpose: Free all dynamically allocated memory used by this table
+// Algorithm:
+// 1. For each bucket in the table:
+//    a. Clear its linked list using list_clear
+//    b. Set the bucket's pointer to NULL
+// 2. Reset total_records to 0
+// Precondition: None
+// Postcondition: 
+// - All linked lists and their nodes are properly deallocated
+// - All entries in data array are set to NULL
+// - total_records is reset to 0
+// Time complexity: O(n) where n is the total number of records
+//===========================================================================
+template <class RecordType>
+Table<RecordType>::~Table()
+{
+    // Clear all existing data
+    for (size_t i = 0; i < TABLE_SIZE; i++)
+    {
+        list_clear(data[i]);
+        data[i] = NULL;
+    }
+    
+    total_records = 0;
+}
+
+//===========================================================================
+// INSERT FUNCTION
+//===========================================================================
+// Purpose: Insert a record into the table
+// Algorithm:
+// 1. Calculate the hash value for the record's key
+// 2. If the bucket is empty, insert the record at the head
+// 3. If the bucket is not empty:
+//    a. Search for the key in the list
+//    b. If found, update the existing record
+//    c. If not found, insert the record at the head of the list
+// 4. Increment total_records if a new record was added
+// Precondition: entry is a valid RecordType object with a key value
+// Postcondition: 
+// - If entry's key wasn't in the table, a new record is inserted
+// - If entry's key was already in the table, the data is updated
+// - total_records is incremented only if a new record was added
+// Time complexity: O(L) where L is the length of the list at the hash position
+//===========================================================================
+template <class RecordType>
+void Table<RecordType>::insert(const RecordType& entry)
+{
+    size_t index;
+    Node<RecordType>* cursor;
+    Node<RecordType>* precursor;
+    
+    index = hash(entry.key);
+    
+    // Check if key already exists in the table
+    if (data[index] == NULL)
+    {
+        // If the list is empty, insert at head
+        list_head_insert(data[index], entry);
+        total_records++;
+    }
+    else
+    {
+        cursor = data[index];
+        precursor = NULL;
+        
+        Node<RecordType>* existing = find_node(cursor, precursor, entry.key);
+        
+        if (existing != NULL)
+        {
+            // Key already exists, replace the data
+            existing->data = entry;
+        }
+        else
+        {
+            // Key doesn't exist, add to the list
+            list_head_insert(data[index], entry);
+            total_records++;
+        }
+    }
+}
+
+//===========================================================================
+// REMOVE FUNCTION
+//===========================================================================
+// Purpose: Remove a record with the specified key from the table
+// Algorithm:
+// 1. Calculate the hash value for the key
+// 2. If the bucket is not empty:
+//    a. Search for the key in the list
+//    b. If found and it's the first node, use list_head_remove
+//    c. If found elsewhere in the list, use list_remove with the precursor
+// 3. Decrement total_records if a record was removed
+// Precondition: key is an integer
+// Postcondition: 
+// - If a record with the given key existed, it is removed
+// - If no record with the key existed, the table is unchanged
+// - total_records is decremented if a record was removed
+// Time complexity: O(L) where L is the length of the list at the hash position
+//===========================================================================
+template <class RecordType>
+void Table<RecordType>::remove(int key)
+{
+    size_t index;
+    Node<RecordType>* cursor;
+    Node<RecordType>* precursor;
+    
+    index = hash(key);
+    
+    if (data[index] != NULL)
+    {
+        cursor = data[index];
+        precursor = NULL;
+        
+        Node<RecordType>* target = find_node(cursor, precursor, key);
+        
+        if (target != NULL)
+        {
+            if (precursor == NULL)
+            {
+                // Target is at the head of the list
+                list_head_remove(data[index]);
+            }
+            else
+            {
+                // Target is somewhere in the list
+                list_remove(precursor);
+            }
+            
+            total_records--;
+        }
+    }
+}
+
+//===========================================================================
+// PRINT FUNCTION
+//===========================================================================
+// Purpose: Print the contents of a hash table bucket
+// Algorithm:
+// 1. Check if the specified index has any records
+// 2. If empty, print a NULL indicator
+// 3. If not empty, iterate through the list and print all keys
+// Precondition: index is a valid index in the range [0, TABLE_SIZE-1]
+// Postcondition: 
+// - The contents of the specified bucket are displayed
+// - The table is unchanged
+// Time complexity: O(L) where L is the length of the list at the specified index
+//===========================================================================
+template <class RecordType>
+void Table<RecordType>::print(int index) const
+{
+    Node<RecordType>* cursor;
+    
+    if (data[index] == NULL)
+    {
+        std::cout << "[( " << index << " )]---->  NULL" << std::endl;
+    }
+    else
+    {
+        std::cout << "[( " << index << " )]----> ";
+        cursor = data[index];
+        
+        while (cursor != NULL)
+        {
+            std::cout << "[" << cursor->data.key << "]";
+            
+            if (cursor->link != NULL)
+                std::cout << "-->";
+            
+            cursor = cursor->link;
+        }
+        
+        std::cout << "--> NULL" << std::endl;
+    }
+}
+
+//===========================================================================
+// IS_PRESENT FUNCTION
+//===========================================================================
+// Purpose: Check if a record with the same key as target exists in the table
+// Algorithm:
+// 1. Calculate the hash value for the target's key
+// 2. If the bucket is empty, return false
+// 3. Otherwise, search for the key in the list using find_node
+// Precondition: target is a valid RecordType object with a key value
+// Postcondition: 
+// - Returns true if a record with the same key exists
+// - Returns false otherwise
+// - The table is unchanged
+// Time complexity: O(L) where L is the length of the list at the hash position
+//===========================================================================
+template <class RecordType>
+bool Table<RecordType>::is_present(const RecordType& target) const
+{
+    size_t index;
+    Node<RecordType>* cursor;
+    Node<RecordType>* precursor;
+    
+    index = hash(target.key);
+    
+    if (data[index] == NULL)
+        return false;
+    
+    cursor = data[index];
+    precursor = NULL;
+    
+    return (find_node(cursor, precursor, target.key) != NULL);
+}
+
+//===========================================================================
+// FIND FUNCTION
+//===========================================================================
+// Purpose: Find a record with the specified key
+// Algorithm:
+// 1. Calculate the hash value for the key
+// 2. If the bucket is empty, set found to false
+// 3. Otherwise, search for the key in the list
+// 4. If found, set found to true and copy the record to result
+// Precondition: key is an integer
+// Postcondition: 
+// - found is set to true if a record with the key exists, false otherwise
+// - If found is true, result contains a copy of the record
+// - If found is false, result is unchanged
+// - The table is unchanged
+// Time complexity: O(L) where L is the length of the list at the hash position
+//===========================================================================
+template <class RecordType>
+void Table<RecordType>::find(int key, bool& found, RecordType& result) const
+{
+    size_t index;
+    Node<RecordType>* cursor;
+    Node<RecordType>* precursor;
+    
+    index = hash(key);
+    
+    if (data[index] == NULL)
+    {
+        found = false;
+        return;
+    }
+    
+    cursor = data[index];
+    precursor = NULL;
+    
+    Node<RecordType>* target = find_node(cursor, precursor, key);
+    
+    if (target == NULL)
+    {
+        found = false;
+    }
+    else
+    {
+        found = true;
+        result = target->data;
+    }
+}
+
+//===========================================================================
+// SIZE FUNCTION
+//===========================================================================
+// Purpose: Get the total number of records in the table
+// Postcondition: 
+// - Returns the value of total_records
+// - The table is unchanged
+// Time complexity: O(1) - constant time operation
+//===========================================================================
+template <class RecordType>
+size_t Table<RecordType>::size() const
+{
+    return total_records;
+}
+
+//===========================================================================
+// HASH FUNCTION
+//===========================================================================
+// Purpose: Calculate the hash value for a key
+// Algorithm: Simple modulo hashing - key mod TABLE_SIZE
+// Precondition: key is an integer
+// Postcondition: 
+// - Returns an index in the range [0, TABLE_SIZE-1]
+// Time complexity: O(1) - constant time operation
+//===========================================================================
+template <class RecordType>
+size_t Table<RecordType>::hash(int key) const
+{
+    return key % TABLE_SIZE;
+}
+
+//===========================================================================
+// FIND_NODE FUNCTION (HELPER)
+//===========================================================================
+// Purpose: Find a node with the specified key in a linked list
+// Algorithm:
+// 1. Initialize precursor to NULL
+// 2. Traverse the list using cursor, updating precursor at each step
+// 3. Stop if cursor reaches a node with the target key or the end of the list
+// Precondition: 
+// - cursor initially points to the head of a linked list
+// - precursor is used to track the node before cursor
+// - key is an integer to search for
+// Postcondition: 
+// - Returns pointer to the node containing key, or NULL if not found
+// - cursor points to the found node or NULL if not found
+// - precursor points to the node before the found node, or NULL if found at head
+// Time complexity: O(L) where L is the length of the linked list
+//===========================================================================
+template <class RecordType>
+Node<RecordType>* Table<RecordType>::find_node(Node<RecordType>*& cursor, Node<RecordType>*& precursor, int key) const
+{
+    precursor = NULL;
+    
+    while (cursor != NULL && cursor->data.key != key)
+    {
+        precursor = cursor;
+        cursor = cursor->link;
+    }
+    
+    return cursor;
+}
